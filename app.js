@@ -182,14 +182,19 @@ app.get("/todos/:todoId/", async (request, response) => {
 });
 app.get("/agenda/", async (request, response) => {
   const { date } = request.query;
-  if (isMatch(date, "YYYY-MM-dd")) {
-    const newDate = format(new Date(date), "YYYY-MM-dd");
-    const getDate = `SELECT * FROM todo WHERE due_date='${newDate}';`;
-    const todoList = await db.all(getDate);
-    response.send(todoList.map((each) => ConvertDataToResponse(each)));
-  } else {
+  if (date === undefined) {
     response.status(400);
     response.send("Invalid Due Date");
+  } else {
+    if (isValid(new Date(date))) {
+      const newDate = format(new Date(date), "YYYY-MM-dd");
+      const getDate = `SELECT id,todo,priority,status,category,due_date AS dueDate FROM todo WHERE due_date='${newDate}';`;
+      const todoList = await db.all(getDate);
+      response.send(todoList.map((each) => ConvertDataToResponse(each)));
+    } else {
+      response.status(400);
+      response.send("Invalid Due Date");
+    }
   }
 });
 
@@ -202,8 +207,8 @@ app.post("/todos/", async (request, response) => {
         category === "HOME" ||
         category === "LEARNING"
       ) {
-        if (isMatch(date, "YYYY-MM-DD")) {
-          const newDate = format(new Date(date), "YYYY-MM-DD");
+        if (isValid(new Date(date))) {
+          const newDate = format(new Date(date), "YYYY-MM-dd");
           const create = `INSERT INTO todo (id,todo,priority,status,category,due_date)
                                             VALUES (${id},'${todo}','${priority}','${status}', '${category}','${newDueDate}');`;
           await db.run(create);
@@ -289,8 +294,8 @@ app.put("/todos/:todoId/", async (request, response) => {
       }
       break;
     case requestDetails.dueDate !== undefined:
-      if (isMatch(date, "YYYY-MM-DD")) {
-        const newDate = format(new Date(date), "YYYY-MM-DD");
+      if (isValid(new Date(date))) {
+        const newDate = format(new Date(date), "YYYY-MM-dd");
         updateTodo = `UPDATE todo 
                              SET todo='${todo}',priority='${priority}',status='${status}',category ='${category}',due_date='${newDueDate}'
                              WHERE id = ${todoId}; `;
